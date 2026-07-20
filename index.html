@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#071a33">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>AirFlight</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#edf4fb;--card:#fff;--ink:#10233f;--muted:#6d7d90;--blue:#0f6fff;--nav:#071a33}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+body.night{--bg:#061326;--card:#0d2442;--ink:#fff;--muted:#aab8ca}
+header{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--nav);color:#fff}
+header div{display:flex;flex-direction:column}header small{opacity:.72;margin-top:2px}
+header button{height:40px;border:0;border-radius:12px;background:#ffffff18;color:#fff;font-size:20px}
+main{max-width:950px;margin:auto;padding:16px 16px calc(28px + env(safe-area-inset-bottom))}
+.view{display:none}.view.active{display:block}
+.hero{padding:28px;border-radius:26px;background:linear-gradient(135deg,#082e63,#0f6fff,#00a3c7);color:#fff}
+.hero h1{font-size:42px;line-height:1;margin:8px 0 12px}.hero p{font-size:12px;font-weight:800;letter-spacing:.15em;opacity:.8}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}
+.tile,.gamebtn{min-height:128px;border:1px solid #10233f18;border-radius:22px;background:var(--card);color:var(--ink);box-shadow:0 12px 30px #1e416e18;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:18px;font-size:30px}
+.tile b,.gamebtn b{font-size:16px;margin-top:8px}.tile small{font-size:12px;color:var(--muted);margin-top:4px}
+button{border:0;border-radius:14px;padding:12px 16px;font-weight:700}.primary{background:var(--blue);color:#fff}
+h2{font-size:32px;margin-bottom:12px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin:10px 0;box-shadow:0 10px 24px #1e416e14}
+input[type=file],input[type=text],input[type=number]{width:100%;padding:12px;margin:8px 0 14px;border:1px solid #ccd6e2;border-radius:12px;background:var(--card);color:var(--ink)}
+.media-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px}
+.games{grid-template-columns:repeat(3,1fr)}
+.gamebox{background:var(--card);border-radius:22px;padding:16px;box-shadow:0 12px 30px #1e416e18}
+canvas{display:block;max-width:100%;margin:auto;background:#fff;border-radius:16px;touch-action:none}
+.game-grid{display:grid;gap:8px;justify-content:center}
+.square{width:70px;height:70px;font-size:30px}
+.cabin{text-align:center;padding:30px;border-radius:26px;background:#071a33;color:#fff}.timer{font-size:54px;font-variant-numeric:tabular-nums;margin:20px 0}
+.modal{position:fixed;inset:0;z-index:30;background:#000b;display:grid;place-items:center;padding:16px}.modal.hidden{display:none}.modal>div{position:relative;width:min(850px,100%);max-height:90vh;overflow:auto;background:#fff;color:#10233f;border-radius:20px;padding:18px}.modal video,.modal audio,.modal iframe,.modal img{width:100%;max-height:75vh}
+.close{position:absolute;right:10px;top:10px}
+.relax{position:fixed;inset:0;z-index:40;background:radial-gradient(circle,#173b70,#02050b);color:#fff;display:grid;place-items:center;text-align:center}.relax.hidden{display:none}
+.breath{width:120px;height:120px;border-radius:50%;background:#ffffff38;animation:breathe 8s infinite}@keyframes breathe{0%,100%{transform:scale(.7)}50%{transform:scale(1.4)}}
+.notice{font-size:13px;color:var(--muted)}
+.status{padding:10px 12px;border-radius:12px;background:#dff6e7;color:#145c2c;margin:12px 0;display:none}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}.games{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:36px}.gallery{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<button id="back">←</button>
+<div><b>✈ AIRFLIGHT</b><small id="routeLabel">Venezia → Lisbona</small></div>
+<button id="settingsBtn">⚙</button>
+</header>
+
+<main>
+<section id="home" class="view active">
+<div class="hero">
+<p>INTRATTENIMENTO OFFLINE</p>
+<h1>Benvenuto a bordo</h1>
+<span id="destinationLabel">Destinazione: Lisbona</span>
+</div>
+<div id="offlineStatus" class="status">AirFlight è pronto per l’uso offline.</div>
+<div class="grid">
+<button class="tile" data-view="films">🎬<b>Film</b><small>Video salvati</small></button>
+<button class="tile" data-view="games">🎮<b>Giochi</b><small>6 minigiochi</small></button>
+<button class="tile" data-view="music">🎵<b>Musica</b><small>Brani offline</small></button>
+<button class="tile" data-view="books">📚<b>Libri</b><small>PDF e testi</small></button>
+<button class="tile" data-view="travel">🗺️<b>Viaggio</b><small>Itinerario e frasi</small></button>
+<button class="tile" data-view="gallery">📷<b>Foto</b><small>Galleria locale</small></button>
+<button class="tile" data-view="favorites">⭐<b>Preferiti</b><small>Contenuti salvati</small></button>
+<button class="tile" data-view="cabin">🛫<b>Cabina</b><small>Timer di volo</small></button>
+</div>
+<button id="prepareOffline" class="primary">Prepara uso offline</button>
+<p class="notice">I contenuti importati vengono salvati nel browser tramite IndexedDB e restano disponibili finché non cancelli i dati del sito.</p>
+</section>
+
+<section id="films" class="view"><h2>Film</h2><input id="filmInput" type="file" accept="video/*" multiple><div id="filmList"></div></section>
+<section id="music" class="view"><h2>Musica</h2><input id="musicInput" type="file" accept="audio/*" multiple><div id="musicList"></div></section>
+<section id="books" class="view"><h2>Libri e PDF</h2><input id="bookInput" type="file" accept=".pdf,.txt,.epub,application/pdf,text/plain" multiple><div id="bookList"></div></section>
+<section id="gallery" class="view"><h2>Galleria</h2><input id="imageInput" type="file" accept="image/*" multiple><div id="galleryList" class="gallery"></div></section>
+
+<section id="games" class="view">
+<h2>Minigiochi</h2>
+<div class="grid games">
+<button class="gamebtn" data-game="snake">🐍<b>Snake</b></button>
+<button class="gamebtn" data-game="memory">🧠<b>Memory</b></button>
+<button class="gamebtn" data-game="quiz">🌍<b>Quiz</b></button>
+<button class="gamebtn" data-game="game2048">🔢<b>2048</b></button>
+<button class="gamebtn" data-game="pong">🏓<b>Pong</b></button>
+<button class="gamebtn" data-game="tris">❌<b>Tris</b></button>
+</div>
+<div id="gameArea"></div>
+</section>
+
+<section id="travel" class="view">
+<h2>Viaggio</h2>
+<div class="card"><h3>Itinerario</h3><ol><li>Lisbona</li><li>Alentejo</li><li>Algarve</li><li>Rientro</li></ol></div>
+<div class="card"><h3>Frasi utili</h3><p><b>Bom dia</b> — Buongiorno</p><p><b>Obrigado</b> — Grazie</p><p><b>Onde fica…?</b> — Dove si trova…?</p><p><b>A conta, por favor</b> — Il conto, per favore</p></div>
+<div class="card"><h3>Emergenze</h3><p>Numero unico europeo: <b>112</b></p></div>
+</section>
+
+<section id="favorites" class="view"><h2>Preferiti</h2><div id="favoritesList" class="card">Nessun preferito.</div></section>
+
+<section id="cabin" class="view">
+<div class="cabin">
+<p>CABIN MODE</p><h2 id="cabinDestination">Prossima fermata: Lisbona</h2>
+<div id="timer" class="timer">02:45:00</div>
+<button id="startTimer" class="primary">Avvia</button>
+<button id="pauseTimer">Pausa</button>
+<button id="resetTimer">Reimposta</button>
+<button id="relaxBtn">Relax</button>
+</div>
+</section>
+
+<section id="settings" class="view">
+<h2>Impostazioni</h2>
+<label>Tratta<input id="routeInput" type="text" value="Venezia → Lisbona"></label>
+<label>Destinazione<input id="destinationInput" type="text" value="Lisbona"></label>
+<label>Durata volo in minuti<input id="durationInput" type="number" value="165"></label>
+<label><input id="nightInput" type="checkbox"> Modalità notte</label><br><br>
+<button id="saveSettings" class="primary">Salva</button>
+<button id="clearAll">Cancella contenuti importati</button>
+</section>
+</main>
+
+<div id="modal" class="modal hidden"><div><button id="closeModal" class="close">×</button><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
+<div id="relaxOverlay" class="relax hidden"><div><div class="breath"></div><h2>Respira lentamente</h2><button id="closeRelax">Chiudi</button></div></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function openView(id){$$('.view').forEach(v=>v.classList.remove('active'));$('#'+id).classList.add('active');$('#back').style.visibility=id==='home'?'hidden':'visible'}
+$$('[data-view]').forEach(b=>b.onclick=()=>openView(b.dataset.view));
+$('#back').onclick=()=>openView('home');$('#settingsBtn').onclick=()=>openView('settings');$('#back').style.visibility='hidden';
+
+let db;
+const req=indexedDB.open('AirFlightDB',1);
+req.onupgradeneeded=e=>{db=e.target.result;if(!db.objectStoreNames.contains('media'))db.createObjectStore('media',{keyPath:'id',autoIncrement:true});if(!db.objectStoreNames.contains('favorites'))db.createObjectStore('favorites',{keyPath:'id',autoIncrement:true})};
+req.onsuccess=e=>{db=e.target.result;refreshAll()};
+function tx(store,mode='readonly'){return db.transaction(store,mode).objectStore(store)}
+function addFiles(input,category){input.onchange=()=>{[...input.files].forEach(file=>tx('media','readwrite').add({category,name:file.name,type:file.type,blob:file}));setTimeout(refreshAll,300)}}
+addFiles($('#filmInput'),'films');addFiles($('#musicInput'),'music');addFiles($('#bookInput'),'books');addFiles($('#imageInput'),'images');
+function getAll(store,cb){const r=tx(store).getAll();r.onsuccess=()=>cb(r.result)}
+function refreshAll(){renderCategory('films','#filmList');renderCategory('music','#musicList');renderCategory('books','#bookList');renderImages();renderFavorites()}
+function renderCategory(category,target){getAll('media',items=>{const el=$(target);el.innerHTML='';const filtered=items.filter(x=>x.category===category);if(!filtered.length){el.innerHTML='<div class="card">Nessun contenuto importato.</div>';return}filtered.forEach(item=>{const row=document.createElement('div');row.className='card media-row';row.innerHTML=`<b>${item.name}</b><button>Apri</button><button>⭐</button>`;row.children[1].onclick=()=>showMedia(item);row.children[2].onclick=()=>{tx('favorites','readwrite').add({name:item.name,mediaId:item.id});setTimeout(renderFavorites,200)};el.appendChild(row)})})}
+function renderImages(){getAll('media',items=>{const el=$('#galleryList');el.innerHTML='';items.filter(x=>x.category==='images').forEach(item=>{const img=document.createElement('img');img.src=URL.createObjectURL(item.blob);img.alt=item.name;img.onclick=()=>showMedia(item);el.appendChild(img)})})}
+function showMedia(item){$('#modalTitle').textContent=item.name;const body=$('#modalBody');body.innerHTML='';const url=URL.createObjectURL(item.blob);let node;if(item.category==='films'){node=document.createElement('video');node.controls=true;node.src=url}else if(item.category==='music'){node=document.createElement('audio');node.controls=true;node.src=url}else if(item.category==='books'){node=document.createElement('iframe');node.src=url}else{node=document.createElement('img');node.src=url}body.appendChild(node);$('#modal').classList.remove('hidden')}
+$('#closeModal').onclick=()=>$('#modal').classList.add('hidden');
+function renderFavorites(){getAll('favorites',items=>{$('#favoritesList').innerHTML=items.length?items.map(x=>'⭐ '+x.name).join('<br><br>'):'Nessun preferito.'})}
+
+let remaining=165*60,original=remaining,timerId=null;
+function drawTimer(){const h=String(Math.floor(remaining/3600)).padStart(2,'0'),m=String(Math.floor((remaining%3600)/60)).padStart(2,'0'),s=String(remaining%60).padStart(2,'0');$('#timer').textContent=`${h}:${m}:${s}`}
+$('#startTimer').onclick=()=>{clearInterval(timerId);timerId=setInterval(()=>{if(remaining>0){remaining--;drawTimer()}else clearInterval(timerId)},1000)};
+$('#pauseTimer').onclick=()=>clearInterval(timerId);$('#resetTimer').onclick=()=>{clearInterval(timerId);remaining=original;drawTimer()};
+$('#relaxBtn').onclick=()=>$('#relaxOverlay').classList.remove('hidden');$('#closeRelax').onclick=()=>$('#relaxOverlay').classList.add('hidden');
+
+$('#saveSettings').onclick=()=>{const r=$('#routeInput').value,d=$('#destinationInput').value,min=Number($('#durationInput').value||165),night=$('#nightInput').checked;const s={r,d,min,night};localStorage.setItem('airFlightSettings',JSON.stringify(s));applySettings(s);openView('home')};
+function applySettings(s){$('#routeLabel').textContent=s.r;$('#destinationLabel').textContent='Destinazione: '+s.d;$('#cabinDestination').textContent='Prossima fermata: '+s.d;$('#routeInput').value=s.r;$('#destinationInput').value=s.d;$('#durationInput').value=s.min;$('#nightInput').checked=s.night;document.body.classList.toggle('night',s.night);original=remaining=s.min*60;drawTimer()}
+const saved=JSON.parse(localStorage.getItem('airFlightSettings')||'null');if(saved)applySettings(saved);
+$('#clearAll').onclick=()=>{if(confirm('Cancellare tutti i contenuti importati?')){const t=db.transaction(['media','favorites'],'readwrite');t.objectStore('media').clear();t.objectStore('favorites').clear();setTimeout(refreshAll,250)}};
+
+$$('[data-game]').forEach(b=>b.onclick=()=>launchGame(b.dataset.game));
+function launchGame(name){const area=$('#gameArea');area.innerHTML='';const box=document.createElement('div');box.className='gamebox';area.appendChild(box);({snake,memory,quiz,game2048,pong,tris})[name](box)}
+function snake(box){box.innerHTML='<h3>🐍 Snake</h3><canvas width="320" height="320"></canvas><p>Scorri sul campo.</p><button>Nuova partita</button>';const c=box.querySelector('canvas'),x=c.getContext('2d');let s,d,f,score,touch;function reset(){s=[{x:8,y:8}];d={x:1,y:0};f={x:4,y:4};score=0}reset();box.querySelector('button').onclick=reset;const id=setInterval(()=>{if(!document.body.contains(c)){clearInterval(id);return}let h={x:s[0].x+d.x,y:s[0].y+d.y};if(h.x<0||h.y<0||h.x>15||h.y>15||s.some(p=>p.x===h.x&&p.y===h.y))reset();s.unshift(h);if(h.x===f.x&&h.y===f.y){score++;f={x:Math.floor(Math.random()*16),y:Math.floor(Math.random()*16)}}else s.pop();x.clearRect(0,0,320,320);x.fillStyle='#0f6fff';s.forEach(p=>x.fillRect(p.x*20+1,p.y*20+1,18,18));x.fillStyle='#e43';x.fillRect(f.x*20+2,f.y*20+2,16,16);x.fillStyle='#10233f';x.fillText('Punti '+score,8,16)},130);c.ontouchstart=e=>touch=e.touches[0];c.ontouchend=e=>{const q=e.changedTouches[0],dx=q.clientX-touch.clientX,dy=q.clientY-touch.clientY;d=Math.abs(dx)>Math.abs(dy)?{x:dx>0?1:-1,y:0}:{x:0,y:dy>0?1:-1}}}
+function memory(box){box.innerHTML='<h3>🧠 Memory</h3><div class="game-grid" style="grid-template-columns:repeat(4,64px)"></div><p></p><button>Ricomincia</button>';const g=box.querySelector('.game-grid'),p=box.querySelector('p'),vals=['✈️','🇵🇹','🌊','☀️','🚗','🏖️','🎵','🎮'];let first=null,lock=false,moves=0;function setup(){g.innerHTML='';first=null;moves=0;p.textContent='Mosse: 0';[...vals,...vals].sort(()=>Math.random()-.5).forEach(v=>{const b=document.createElement('button');b.textContent='?';b.style.height='64px';b.dataset.v=v;b.onclick=()=>{if(lock||b.disabled||b===first)return;b.textContent=b.dataset.v;if(!first)first=b;else{moves++;p.textContent='Mosse: '+moves;if(first.dataset.v===b.dataset.v){first.disabled=b.disabled=true;first=null}else{lock=true;setTimeout(()=>{first.textContent=b.textContent='?';first=null;lock=false},700)}}};g.appendChild(b)})}box.querySelector('button:last-child').onclick=setup;setup()}
+function quiz(box){const qs=[['Qual è la capitale del Portogallo?',['Lisbona','Porto','Faro'],0],['In quale regione si trova Benagil?',['Algarve','Alentejo','Madeira'],0],['Quale oceano bagna il Portogallo?',['Atlantico','Indiano','Pacifico'],0],['Che significa “Obrigado”?',['Grazie','Ciao','Scusa'],0]];let i=0,score=0;box.innerHTML='<h3>🌍 Quiz Portogallo</h3><h4></h4><div></div>';const q=box.querySelector('h4'),a=box.querySelector('div');function show(){if(i>=qs.length){q.textContent='Punteggio '+score+'/'+qs.length;a.innerHTML='<button>Ricomincia</button>';a.querySelector('button').onclick=()=>{i=score=0;show()};return}q.textContent=qs[i][0];a.innerHTML='';qs[i][1].forEach((v,n)=>{const b=document.createElement('button');b.textContent=v;b.style.margin='6px';b.onclick=()=>{if(n===qs[i][2])score++;i++;show()};a.appendChild(b)})}show()}
+function game2048(box){box.innerHTML='<h3>🔢 2048 Mini</h3><div class="game-grid" style="grid-template-columns:repeat(4,66px)"></div><p>Scorri sul gioco.</p><button>Nuova partita</button>';const g=box.querySelector('.game-grid');let a,touch;function add(){const e=a.map((v,i)=>v?null:i).filter(v=>v!==null);if(e.length)a[e[Math.floor(Math.random()*e.length)]]=2}function draw(){g.innerHTML='';a.forEach(v=>{const d=document.createElement('div');d.textContent=v||'';d.style='height:66px;background:#fff;color:#10233f;border-radius:12px;display:grid;place-items:center;font-size:24px;font-weight:800';g.appendChild(d)})}function row(r){let b=r.filter(Boolean);for(let i=0;i<b.length-1;i++)if(b[i]===b[i+1]){b[i]*=2;b.splice(i+1,1)}while(b.length<4)b.push(0);return b}function move(dir){const old=a.join(),n=Array(16).fill(0);if(dir==='l'||dir==='r')for(let y=0;y<4;y++){let r=a.slice(y*4,y*4+4);if(dir==='r')r.reverse();r=row(r);if(dir==='r')r.reverse();r.forEach((v,x)=>n[y*4+x]=v)}else for(let x=0;x<4;x++){let r=[a[x],a[4+x],a[8+x],a[12+x]];if(dir==='d')r.reverse();r=row(r);if(dir==='d')r.reverse();r.forEach((v,y)=>n[y*4+x]=v)}a=n;if(a.join()!==old)add();draw()}function init(){a=Array(16).fill(0);add();add();draw()}g.ontouchstart=e=>touch=e.touches[0];g.ontouchend=e=>{const q=e.changedTouches[0],dx=q.clientX-touch.clientX,dy=q.clientY-touch.clientY;move(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'))};box.querySelector('button').onclick=init;init()}
+function pong(box){box.innerHTML='<h3>🏓 Pong</h3><canvas width="340" height="420"></canvas><p>Muovi il dito sul campo.</p>';const c=box.querySelector('canvas'),x=c.getContext('2d');let px=135,bx=170,by=210,vx=3,vy=4,score=0;function loop(){if(!document.body.contains(c))return;bx+=vx;by+=vy;if(bx<8||bx>332)vx*=-1;if(by<8)vy*=-1;if(by>390&&bx>px&&bx<px+70){vy=-Math.abs(vy);score++}if(by>430){bx=170;by=210;score=0}x.clearRect(0,0,340,420);x.fillStyle='#0f6fff';x.fillRect(px,395,70,10);x.beginPath();x.arc(bx,by,8,0,7);x.fill();x.fillStyle='#10233f';x.fillText('Punti '+score,10,18);requestAnimationFrame(loop)}c.ontouchmove=e=>{const r=c.getBoundingClientRect();px=(e.touches[0].clientX-r.left)*340/r.width-35};loop()}
+function tris(box){box.innerHTML='<h3>❌ Tris</h3><div class="game-grid" style="grid-template-columns:repeat(3,90px)"></div><p></p><button>Ricomincia</button>';const g=box.querySelector('.game-grid'),p=box.querySelector('p');let a,t;function winner(){return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(w=>a[w[0]]&&a[w[0]]===a[w[1]]&&a[w[1]]===a[w[2]])}function reset(){a=Array(9).fill('');t='X';p.textContent='Turno: X';g.innerHTML='';a.forEach((_,i)=>{const b=document.createElement('button');b.className='square';b.onclick=()=>{if(a[i]||winner())return;a[i]=t;b.textContent=t;if(winner())p.textContent='Vince '+t;else{t=t==='X'?'O':'X';p.textContent='Turno: '+t}};g.appendChild(b)})}box.querySelector('button:last-child').onclick=reset;reset()}
+
+async function registerSW(){
+ if('serviceWorker' in navigator){
+   try{
+     await navigator.serviceWorker.register('./service-worker.js');
+     $('#offlineStatus').style.display='block';
+   }catch(e){console.error(e)}
+ }
+}
+$('#prepareOffline').onclick=async()=>{await registerSW();alert('AirFlight è pronto. Ora provalo in modalità aereo.')};
+registerSW();
+</script>
+</body>
+</html>
